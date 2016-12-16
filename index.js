@@ -12,9 +12,32 @@ var svgo = new SVGO({
   ]
 });
 
+var parseAlias = function (fileName, mapping, prefix) {
+  var result;
+
+  Object.keys(mapping).forEach(function(key) {
+    var needle = '~' + key + '/';
+    var alias = mapping[key];
+    var found = fileName.indexOf(needle) >= 0;
+
+    if (found && alias) {
+      result = fileName.replace(needle, alias + '/');
+    }
+
+  });
+
+  if (!result) {
+    result = path.join(prefix, fileName);
+  }
+
+  return result;
+};
+
 module.exports = function (content) {
   this.cacheable && this.cacheable();
   var loader = this;
+  var alias = this.options.resolve.alias;
+
   content = content.replace(PATTERN, function (match, element, preAttributes, fileName, postAttributes) {
     var isSvgFile = path.extname(fileName).toLowerCase() === '.svg';
     var isImg = element.toLowerCase() === 'img';
@@ -23,15 +46,10 @@ module.exports = function (content) {
       return match;
     }
 
-    var filePath = path.join(loader.context, fileName);
+    var filePath = parseAlias(fileName, alias, loader.context);
+
     loader.addDependency(filePath);
     var fileContent = fs.readFileSync(filePath, {encoding: 'utf-8'});
-    if (isSvgFile) {
-      // It's callback, But it's sync
-      svgo.optimize(fileContent, function (result) {
-        fileContent = result.data;
-      });
-    }
     return fileContent.replace(/^<svg/, '<svg ' + preAttributes + postAttributes + ' ');
   });
   return content;
