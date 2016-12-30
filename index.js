@@ -1,5 +1,5 @@
 var PATTERN = /<(svg|img|math)\s+(.*?)src="(.*?)"(.*?)\/?>/gi;
-
+var uniqueSVGTagId = require('./unique-tag-id')
 var fs = require('fs');
 var path = require('path');
 var SVGO = require('svgo');
@@ -50,6 +50,7 @@ module.exports = function (content) {
 
     loader.addDependency(filePath);
     var fileContent = fs.readFileSync(filePath, {encoding: 'utf-8'});
+    fileContent = uniqueSVGTagId(fileContent, 'radialGradient', 'linearGradient', 'mask', 'clipPath')
     return fileContent.replace(/^<svg/, '<svg ' + preAttributes + postAttributes + ' ');
   });
   return content;
